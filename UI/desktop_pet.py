@@ -1,20 +1,21 @@
 """
 desktop_pet.py
 
-First visual version of Byte.
+Enterprise Buddy Desktop Companion
 
 Responsibilities:
 - Display Byte's current state
-- Read enterprise data
+- Load enterprise data
 - Build work context
 - Calculate pet health
-- Refresh UI when requested
+- Display notifications
+- Refresh automatically
 
 Future features:
 - Images
 - Animations
-- Notifications
-- Interactive buttons
+- AI-generated dialogue
+- Interactive pet actions
 """
 
 from PySide6.QtWidgets import (
@@ -24,11 +25,15 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from PySide6.QtCore import QTimer
+
 from Services.state_manager import StateManager
 from Services.data_loader import DataLoader
 
 from Engines.context_engine import ContextEngine
 from Engines.pet_health_engine import PetHealthEngine
+
+from UI.notifications import NotificationManager
 
 
 class DesktopPet(QWidget):
@@ -42,7 +47,7 @@ class DesktopPet(QWidget):
         self.pet_health_engine = PetHealthEngine()
 
         self.setWindowTitle("Enterprise Buddy")
-        self.setMinimumWidth(300)
+        self.setMinimumWidth(350)
 
         self.pet_name_label = QLabel()
         self.level_label = QLabel()
@@ -71,11 +76,71 @@ class DesktopPet(QWidget):
             self.refresh_pet_data
         )
 
+        # Auto refresh every 60 seconds
+        self.timer = QTimer()
+        self.timer.timeout.connect(
+            self.refresh_pet_data
+        )
+        self.timer.start(60000)
+
         self.refresh_pet_data()
+
+    def check_notification_conditions(
+        self,
+        context: dict,
+        health: dict
+    ):
+        """
+        Determine whether Byte should
+        show a notification.
+        """
+
+        reasons = []
+
+        if context["unread_messages"] > 3:
+            reasons.append(
+                f"{context['unread_messages']} unread messages"
+            )
+
+        if context["pending_manager_requests"] > 0:
+            reasons.append(
+                f"{context['pending_manager_requests']} open manager request(s)"
+            )
+
+        if context["overdue_tasks"] > 0:
+            reasons.append(
+                f"{context['overdue_tasks']} overdue task(s)"
+            )
+
+        if not context["timesheet_submitted"]:
+            reasons.append(
+                "timesheet not submitted"
+            )
+
+        if not reasons:
+            return
+
+        if health["hunger"] < 50:
+            return
+
+        message = (
+            "Hi, I'm Byte.\n\n"
+            "I'm getting hungry because:\n\n"
+            + "\n".join(
+                f"• {reason}"
+                for reason in reasons
+            )
+        )
+
+        NotificationManager.show_byte_notification(
+            "Byte Needs Attention",
+            message
+        )
 
     def refresh_pet_data(self):
         """
-        Refresh Byte using enterprise work data.
+        Refresh Byte using current
+        enterprise work data.
         """
 
         data = self.data_loader.load_all()
@@ -86,6 +151,11 @@ class DesktopPet(QWidget):
 
         health = self.pet_health_engine.calculate_pet_health(
             context
+        )
+
+        self.check_notification_conditions(
+            context,
+            health
         )
 
         pet = self.state_manager.load_pet_state()
