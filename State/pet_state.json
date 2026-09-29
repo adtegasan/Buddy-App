@@ -2,10 +2,10 @@
     "name": "Byte",
     "level": 1,
     "experience": 0,
-    "hunger": 50,
+    "hunger": 70,
     "energy": 85,
-    "mood": "content",
-    "confidence": 65,
+    "mood": "worried",
+    "confidence": 50,
     "status": "healthy",
-    "last_updated": "2026-09-28T14:41:08.531818"
+    "last_updated": "2026-09-29T11:00:57.257991"
 }
